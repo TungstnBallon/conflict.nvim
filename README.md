@@ -3,6 +3,8 @@
 Highlight, navigate and resolve conflict markers.
 Heavily inspired by [git-conflict.nvim](https://github.com/akinsho/git-conflict.nvim).
 
+![A screenshot of a neovim window with highlighted conflict markers](screenshot.png?raw=true "Highlighted conflicts")
+
 ## Setup
 
 No setup needed!
