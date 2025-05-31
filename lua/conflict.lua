@@ -2,11 +2,7 @@ local M = {}
 
 ------- CONFIG -------
 
----@class (exact) Conflict.Config
----@field markers? {current?: string, base?: string, delimiter?: string, incoming?: string}
----@field highlights? {current?: string, base?: string, delimiter?: string, incoming?: string}
-
----@class Conflict.FullConfig
+---@class conflict.Config
 local default_config = {
 	markers = {
 		---@type string
@@ -19,6 +15,10 @@ local default_config = {
 		incoming = "^>>>>>>>%s.*$",
 	},
 	highlights = {
+		---@type boolean | fun(bufnr: integer): boolean
+		enabled = function(bufnr)
+			return vim.bo[bufnr].buftype == ""
+		end,
 		---@type string
 		current = "DiffText",
 		---@type string
@@ -30,47 +30,41 @@ local default_config = {
 	},
 }
 
----@type Conflict.FullConfig
-vim.g.conflict_config = vim.g.conflict_config
----@type Conflict.FullConfig
+---@type conflict.Config
 vim.g.conflict_config = vim.tbl_deep_extend("force", default_config, vim.g.conflict_config or {})
 
----@param config? Conflict.Config `vim.g.conflict_config` by default
-function M.validate_config(config)
-	local config_name = config and "config" or "vim.g.conflict_config"
-	config = config or vim.g.conflict_config
-	vim.validate(config_name, config, "table", true)
-	if not config then
-		return
-	end
-	vim.validate(config_name .. ".markers", config.markers, "table", true)
+function M.validate_config()
+	local config = vim.g.conflict_config
+	vim.validate("vim.g.conflict_config", config, "table")
+	vim.validate("vim.g.conflict_config.markers", config.markers, "table")
 	if config.markers then
-		vim.validate(config_name .. ".markers.current", config.markers.current, "string", true)
-		vim.validate(config_name .. ".markers.base", config.markers.base, "string", true)
-		vim.validate(config_name .. ".markers.delimiter", config.markers.delimiter, "string", true)
-		vim.validate(config_name .. ".markers.incoming", config.markers.incoming, "string", true)
+		vim.validate("vim.g.conflict_config.markers.current", config.markers.current, "string")
+		vim.validate("vim.g.conflict_config.markers.base", config.markers.base, "string")
+		vim.validate("vim.g.conflict_config.markers.delimiter", config.markers.delimiter, "string")
+		vim.validate("vim.g.conflict_config.markers.incoming", config.markers.incoming, "string")
 	end
-	vim.validate(config_name .. ".highlights", config.highlights, "table", true)
+	vim.validate("vim.g.conflict_config.highlights", config.highlights, "table")
 	if config.markers then
-		vim.validate(config_name .. ".highlights.current", config.highlights.current, "string", true)
-		vim.validate(config_name .. ".highlights.base", config.highlights.base, "string", true)
-		vim.validate(config_name .. ".highlights.delimiter", config.highlights.delimiter, "string", true)
-		vim.validate(config_name .. ".highlights.incoming", config.highlights.incoming, "string", true)
+		vim.validate("vim.g.conflict_config.highlights.enabled", config.highlights.enabled, { "boolean", "function" })
+		vim.validate("vim.g.conflict_config.highlights.current", config.highlights.current, "string")
+		vim.validate("vim.g.conflict_config.highlights.base", config.highlights.base, "string")
+		vim.validate("vim.g.conflict_config.highlights.delimiter", config.highlights.delimiter, "string")
+		vim.validate("vim.g.conflict_config.highlights.incoming", config.highlights.incoming, "string")
 	end
 end
 
 ------- PARSING -------
 
----@alias Conflict.Marker "current" | "base" | "delimiter" | "incoming"
+---@alias conflict.Marker "current" | "base" | "delimiter" | "incoming"
 
----@class (exact) Conflict 1-based indexing
+---@class (exact) conflict.Conflict 1-based indexing
 ---@field current integer
 ---@field base? integer
 ---@field delimiter integer
 ---@field incoming integer
 
 ---@param line string
----@return Conflict.Marker? marker
+---@return conflict.Marker? marker
 local function check_line_for_marker(line)
 	local markers = vim.g.conflict_config.markers
 	return (line:find(markers.current) and "current")
@@ -83,7 +77,7 @@ end
 ---@param start_line integer 1-based
 ---@param backwards? boolean
 ---@return integer? linenr 1-based
----@return Conflict.Marker? marker
+---@return conflict.Marker? marker
 local function find_marker(lines, start_line, backwards)
 	local limit = backwards and 1 or #lines
 	local step = backwards and -1 or 1
@@ -98,7 +92,7 @@ end
 ---@param lines string[]
 ---@param start_linenr integer 1-based
 ---@return string? error
----@return Conflict? conflict
+---@return conflict.Conflict? conflict
 local function find_conflict_if_on_marker(lines, start_linenr)
 	local mark = check_line_for_marker(assert(lines[start_linenr]))
 	if mark == "current" then
@@ -132,7 +126,7 @@ local function find_conflict_if_on_marker(lines, start_linenr)
 			return ("%d current: no incoming | %d %s"):format(current, linenr or -1, marker or "no marker"), nil
 		end
 		local incoming = linenr
-		---@type Conflict
+		---@type conflict.Conflict
 		local conflict = {
 			current = current,
 			base = base,
@@ -157,7 +151,7 @@ local function find_conflict_if_on_marker(lines, start_linenr)
 			return ("%d base: no incoming | %d %s"):format(base, linenr or -1, marker or "no marker"), nil
 		end
 		local incoming = linenr
-		---@type Conflict
+		---@type conflict.Conflict
 		local conflict = {
 			current = current,
 			base = base,
@@ -196,7 +190,7 @@ local function find_conflict_if_on_marker(lines, start_linenr)
 			return ("%d delimiter: no incoming | %d %s"):format(delimiter, linenr or -1, marker or "no marker"), nil
 		end
 		local incoming = linenr
-		---@type Conflict
+		---@type conflict.Conflict
 		local conflict = {
 			current = current,
 			base = base,
@@ -241,7 +235,7 @@ local function find_conflict_if_on_marker(lines, start_linenr)
 			),
 				nil
 		end
-		---@type Conflict
+		---@type conflict.Conflict
 		local conflict = {
 			current = current,
 			base = base,
@@ -259,7 +253,7 @@ end
 ---@param to_line integer 1-based, inclusive
 ---@param step integer
 ---@return boolean error
----@return Conflict? conflict
+---@return conflict.Conflict? conflict
 local function find_next_conflict(lines, from_line, to_line, step)
 	for linenr = from_line, to_line, step do
 		local err, conflict = find_conflict_if_on_marker(lines, linenr)
@@ -277,12 +271,10 @@ end
 ---Calls `on_conflict` with each conflict within a specified range.
 ---
 ---If `from_line > to_line` the range will be traversed in reverse.
----A value of `0` for `bufnr` means the current buffer.
----A value of `-1` for `from_line` or `to_line` means the last line of the buffer. Other negative numbers don't work!
----@param on_conflict fun(conflict: Conflict): boolean Return false to stop iterating
----@param bufnr integer The buffer to check conflicts
----@param from_line integer 1-based, inclusive
----@param to_line integer 1-based, inclusive
+---@param on_conflict fun(conflict: conflict.Conflict): boolean Return false to stop iterating
+---@param bufnr? integer The buffer to check conflicts, current buffer by default
+---@param from_line? integer 1-based, inclusive, 1 by default, supports negative indexing (-1 is the last line)
+---@param to_line? integer 1-based, inclusive, -1 by default, supports negative indexing (-1 is the last line)
 function M.iterate_conflicts(on_conflict, bufnr, from_line, to_line)
 	vim.validate("on_conflict", on_conflict, "function")
 	vim.validate("bufnr", bufnr, "number", true)
@@ -292,8 +284,8 @@ function M.iterate_conflicts(on_conflict, bufnr, from_line, to_line)
 	assert(from_line > 0)
 
 	local lines = vim.api.nvim_buf_get_lines(bufnr or 0, 0, -1, true)
-	from_line = from_line == -1 and #lines or from_line
-	to_line = to_line == -1 and #lines or to_line
+	from_line = from_line and from_line < 0 and #lines + 1 - from_line or from_line or 1
+	to_line = to_line and to_line < 0 and #lines + 1 - to_line or to_line or #lines
 
 	local forwards = from_line < to_line
 	local step = forwards and 1 or -1
@@ -345,11 +337,11 @@ end
 
 ------- RESOLVING -------
 
----@alias Conflict.Side "current" | "base" | "incoming" | "none" | "both"
+---@alias conflict.Side "current" | "base" | "incoming" | "none" | "both"
 
 ---@param bufnr integer
----@param conflict Conflict
----@param side Conflict.Side
+---@param conflict conflict.Conflict
+---@param side conflict.Side
 ---@return string[]
 local function get_side_lines(bufnr, conflict, side)
 	if side == "current" then
@@ -378,8 +370,8 @@ local function get_side_lines(bufnr, conflict, side)
 end
 
 ---@param bufnr integer
----@param conflict Conflict
----@param side Conflict.Side
+---@param conflict conflict.Conflict
+---@param side conflict.Side
 local function resolve_conflict_with(bufnr, conflict, side)
 	vim.api.nvim_buf_set_lines(
 		bufnr,
@@ -392,12 +384,12 @@ end
 
 ---@param winid? integer Current window by default
 ---@param linenr? integer Cursor position by default
----@param keep Conflict.Side The side of the conflict to keep
+---@param keep conflict.Side The side of the conflict to keep
 function M.resolve_conflict_at(winid, linenr, keep)
 	vim.validate(
 		"side",
 		keep,
-		---@param v Conflict.Side
+		---@param v conflict.Side
 		function(v)
 			return v == "current" or v == "base" or v == "incoming" or v == "none" or v == "both"
 		end,
@@ -415,7 +407,7 @@ function M.resolve_conflict_at(winid, linenr, keep)
 			resolve_conflict_with(bufnr, conflict, keep)
 		end
 		return false
-	end, bufnr, linenr, -1)
+	end, bufnr, linenr)
 end
 
 return M

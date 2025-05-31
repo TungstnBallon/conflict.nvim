@@ -1,23 +1,54 @@
 # conflict.nvim
 
-Highlight conflict markers, navigate between them and resolve them.
+Highlight, navigate and resolve conflict markers.
 Heavily inspired by [git-conflict.nvim](https://github.com/akinsho/git-conflict.nvim).
+
+## Setup
+
+No setup needed!
 
 ## Configuration
 
 To change the confiuration, simply edit the table `vim.g.conflict_config`
+```lua
+-- Default configuration
+{
+	markers = {
+		---@type string
+		current = "^<<<<<<<%s.*$",
+		---@type string
+		base = "^|||||||%s.*$",
+		---@type string
+		delimiter = "^=======$",
+		---@type string
+		incoming = "^>>>>>>>%s.*$",
+	},
+	highlights = {
+		---@type boolean | fun(bufnr: integer): boolean
+		enabled = function(bufnr)
+			return vim.bo[bufnr].buftype == ""
+		end,
+		---@type string
+		current = "DiffText",
+		---@type string
+		base = "DiffChange",
+		---@type string
+		delimiter = "Normal",
+		---@type string
+		incoming = "DiffAdd",
+	},
+}
+```
 
-## Lua Api
+## Lua API
 ```lua
 ---Calls `on_conflict` with each conflict within a specified range.
 ---
 ---If `from_line > to_line` the range will be traversed in reverse.
----A value of `0` for `bufnr` means the current buffer.
----A value of `-1` for `from_line` or `to_line` means the last line of the buffer. Other negative numbers don't work!
----@param on_conflict fun(conflict: Conflict): boolean Return false to stop iterating
----@param bufnr integer The buffer to check conflicts
----@param from_line integer 1-based, inclusive
----@param to_line integer 1-based, inclusive
+---@param on_conflict fun(conflict: conflict.Conflict): boolean Return false to stop iterating
+---@param bufnr? integer The buffer to check conflicts, current buffer by default
+---@param from_line? integer 1-based, inclusive, 1 by default, supports negative indexing (-1 is the last line)
+---@param to_line? integer 1-based, inclusive, -1 by default, supports negative indexing (-1 is the last line)
 require("conflict").iterate_conflicts(on_conflict, bufnr, from_line, to_line)
 
 ---@param winid? integer Current window by default

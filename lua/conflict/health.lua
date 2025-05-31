@@ -9,15 +9,11 @@ function M.check()
 		vim.health.error("neovim version < 0.11", "Neovim version 0.11 or later is required")
 	end
 
-	if vim.g.conflict_config then
-		local success, err = pcall(require("conflict").validate_config, vim.g.conflict_config)
-		if success then
-			vim.health.ok("Valid configuration")
-		else
-			vim.health.error(err --[[@as string]])
-		end
+	local success, err = pcall(require("conflict").validate_config)
+	if success then
+		vim.health.ok("vim.g.conflict_config = " .. vim.inspect(vim.g.conflict_config --[[@as conflict.Config]]))
 	else
-		vim.health.ok("Valid configuration")
+		vim.health.error(err --[[@as string]], vim.g.conflict_config)
 	end
 end
 

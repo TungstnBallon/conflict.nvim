@@ -18,7 +18,6 @@ local function alter(attr, percent)
 	return math.floor(attr * (100 + percent) / 100)
 end
 
----https://stackoverflow.com/a/37797380
 ---Darken a specified hex color
 ---@param color integer
 ---@param percent number
@@ -98,7 +97,7 @@ local function hl_range(bufnr, hl_group, start_line, end_line, ephemeral)
 end
 
 ---@param bufnr? integer
----@param conflict Conflict
+---@param conflict conflict.Conflict
 ---@param ephemeral? boolean
 local function hl_conflict(bufnr, conflict, ephemeral)
 	hl_range(bufnr, CURRENT_HEADER_HL, conflict.current, conflict.current, ephemeral)
@@ -117,7 +116,11 @@ end
 
 vim.api.nvim_set_decoration_provider(NAMESPACE, {
 	on_win = function(_, _, bufnr, toprow, botrow)
-		if vim.bo[bufnr].buftype ~= "" then
+		if
+			type(vim.g.conflict_config.highlights.enabled) == "boolean"
+				and not vim.g.conflict_config.highlights.enabled
+			or not vim.g.conflict_config.highlights.enabled(bufnr)
+		then
 			return false
 		end
 
