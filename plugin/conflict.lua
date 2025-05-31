@@ -81,20 +81,18 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 
 ---@param bufnr? integer
 ---@param hl_group string
----@param range_start integer 1-indexed, inclusive
----@param range_end integer 1-indexed, exclusive
+---@param start_line integer 1-indexed, inclusive
+---@param end_line integer 1-indexed, inclusive
 ---@param ephemeral? boolean
 ---@return integer markid
-local function hl_range(bufnr, hl_group, range_start, range_end, ephemeral)
-	assert(range_start > 0)
-	assert(range_end > 0)
-	assert(range_start < range_end)
-	return vim.api.nvim_buf_set_extmark(bufnr or 0, NAMESPACE, range_start - 1, 0, {
+local function hl_range(bufnr, hl_group, start_line, end_line, ephemeral)
+	return vim.api.nvim_buf_set_extmark(bufnr or 0, NAMESPACE, start_line - 1, 0, {
 		ephemeral = ephemeral,
 		hl_group = hl_group,
 		hl_eol = true,
 		hl_mode = "combine",
-		end_row = range_end - 1,
+		end_row = end_line,
+		end_col = 0,
 		priority = vim.hl.priorities.user,
 	})
 end
@@ -103,18 +101,18 @@ end
 ---@param conflict Conflict
 ---@param ephemeral? boolean
 local function hl_conflict(bufnr, conflict, ephemeral)
-	hl_range(bufnr, CURRENT_HEADER_HL, conflict.current, conflict.current + 1, ephemeral)
+	hl_range(bufnr, CURRENT_HEADER_HL, conflict.current, conflict.current, ephemeral)
 	hl_range(bufnr, CURRENT_HL, conflict.current + 1, conflict.base or conflict.delimiter, ephemeral)
 
 	if conflict.base then
-		hl_range(bufnr, BASE_HEADER_HL, conflict.base, conflict.base + 1, ephemeral)
+		hl_range(bufnr, BASE_HEADER_HL, conflict.base, conflict.base, ephemeral)
 		hl_range(bufnr, BASE_HL, conflict.base + 1, conflict.delimiter, ephemeral)
 	end
 
-	hl_range(bufnr, DELIMITER_HL, conflict.delimiter, conflict.delimiter + 1, ephemeral)
+	hl_range(bufnr, DELIMITER_HL, conflict.delimiter, conflict.delimiter, ephemeral)
 
 	hl_range(bufnr, INCOMING_HL, conflict.delimiter + 1, conflict.incoming, ephemeral)
-	hl_range(bufnr, INCOMING_TAIL_HL, conflict.incoming, conflict.incoming + 1, ephemeral)
+	hl_range(bufnr, INCOMING_TAIL_HL, conflict.incoming, conflict.incoming, ephemeral)
 end
 
 vim.api.nvim_set_decoration_provider(NAMESPACE, {
