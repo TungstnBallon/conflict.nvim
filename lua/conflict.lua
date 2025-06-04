@@ -94,7 +94,9 @@ end
 ---@return string? error
 ---@return conflict.Conflict? conflict
 local function find_conflict_if_on_marker(lines, start_linenr)
-	local mark = check_line_for_marker(assert(lines[start_linenr]))
+	local line = lines[start_linenr]
+		or error(("Tried to get line %d, but only has lines 1..=%d"):format(start_linenr, #lines))
+	local mark = check_line_for_marker(line)
 	if mark == "current" then
 		local current = start_linenr
 		local linenr, marker = find_marker(lines, current + 1)
@@ -281,11 +283,9 @@ function M.iterate_conflicts(on_conflict, bufnr, from_line, to_line)
 	vim.validate("from_line", from_line, "number", true)
 	vim.validate("from_line", to_line, "number", true)
 
-	assert(from_line > 0)
-
 	local lines = vim.api.nvim_buf_get_lines(bufnr or 0, 0, -1, true)
-	from_line = from_line and from_line < 0 and #lines + 1 - from_line or from_line or 1
-	to_line = to_line and to_line < 0 and #lines + 1 - to_line or to_line or #lines
+	from_line = from_line and from_line < 0 and #lines + 1 + from_line or from_line or 1
+	to_line = to_line and to_line < 0 and #lines + 1 + to_line or to_line or #lines
 
 	local forwards = from_line < to_line
 	local step = forwards and 1 or -1
