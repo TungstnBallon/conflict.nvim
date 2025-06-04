@@ -9,6 +9,13 @@ Heavily inspired by [git-conflict.nvim](https://github.com/akinsho/git-conflict.
 
 No setup needed!
 
+## Provided mappings
+
+You can use these as the third parameter for `vim.keymap.set()`
+- `<Plug>ConflictJumpToNext`
+- `<Plug>ConflictJumpToPrevious`
+- `<Plug>ConflictResolveAroundCursor`
+
 ## Configuration
 
 To change the confiuration, simply edit the table `vim.g.conflict_config`
@@ -66,3 +73,4 @@ require("conflict").jump_to_next_conflict(winid, backwards)
 ---@param keep Conflict.Side The side of the conflict to keep
 require("conflict").resolve_conflict_at(winid, linenr, keep)
 ```
+

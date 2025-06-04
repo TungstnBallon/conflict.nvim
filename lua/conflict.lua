@@ -412,4 +412,80 @@ function M.resolve_conflict_at(winid, linenr, keep)
 	end, bufnr, linenr)
 end
 
+------- HIGHLIGHTS -------
+
+local CURRENT_HL = "ConflictCurrent"
+local BASE_HL = "ConflictBase"
+local INCOMING_HL = "ConflictIncoming"
+local CURRENT_HEADER_HL = "ConflictCurrentHeader"
+local BASE_HEADER_HL = "ConflictBaseHeader"
+local DELIMITER_HL = "ConflictDelimiter"
+local INCOMING_TAIL_HL = "ConflictIncomingTail"
+local NAMESPACE = vim.api.nvim_create_namespace("conflict")
+
+---@param bufnr? integer
+---@param hl_group string
+---@param start_line integer 1-indexed, inclusive
+---@param end_line integer 1-indexed, inclusive
+---@param ephemeral? boolean
+---@return integer markid
+local function hl_range(bufnr, hl_group, start_line, end_line, ephemeral)
+	return vim.api.nvim_buf_set_extmark(bufnr or 0, NAMESPACE, start_line - 1, 0, {
+		ephemeral = ephemeral,
+		hl_group = hl_group,
+		hl_eol = true,
+		hl_mode = "combine",
+		end_row = end_line,
+		end_col = 0,
+		priority = vim.hl.priorities.diagnostics - 1,
+	})
+end
+
+---@param bufnr? integer
+---@param conflict conflict.Conflict
+---@param ephemeral? boolean
+local function hl_conflict(bufnr, conflict, ephemeral)
+	hl_range(bufnr, CURRENT_HEADER_HL, conflict.current, conflict.current, ephemeral)
+	hl_range(bufnr, CURRENT_HL, conflict.current + 1, conflict.base or conflict.delimiter, ephemeral)
+
+	if conflict.base then
+		hl_range(bufnr, BASE_HEADER_HL, conflict.base, conflict.base, ephemeral)
+		hl_range(bufnr, BASE_HL, conflict.base + 1, conflict.delimiter, ephemeral)
+	end
+
+	hl_range(bufnr, DELIMITER_HL, conflict.delimiter, conflict.delimiter, ephemeral)
+
+	hl_range(bufnr, INCOMING_HL, conflict.delimiter + 1, conflict.incoming, ephemeral)
+	hl_range(bufnr, INCOMING_TAIL_HL, conflict.incoming, conflict.incoming, ephemeral)
+end
+
+function M._enable_highlights()
+	local highlights = vim.g.conflict_config.highlights
+
+	vim.api.nvim_set_hl(0, CURRENT_HEADER_HL, { link = highlights.current, default = true })
+	vim.api.nvim_set_hl(0, CURRENT_HL, { link = highlights.current, default = true })
+	vim.api.nvim_set_hl(0, BASE_HEADER_HL, { link = highlights.base, default = true })
+	vim.api.nvim_set_hl(0, BASE_HL, { link = highlights.base, default = true })
+	vim.api.nvim_set_hl(0, DELIMITER_HL, { link = highlights.delimiter, default = true })
+	vim.api.nvim_set_hl(0, INCOMING_HL, { link = highlights.incoming, default = true })
+	vim.api.nvim_set_hl(0, INCOMING_TAIL_HL, { link = highlights.incoming, default = true })
+
+	vim.api.nvim_set_decoration_provider(NAMESPACE, {
+		on_win = function(_, _, buf, toprow, botrow)
+			if
+				type(vim.g.conflict_config.highlights.enabled) == "boolean"
+					and not vim.g.conflict_config.highlights.enabled
+				or not vim.g.conflict_config.highlights.enabled(buf)
+			then
+				return false
+			end
+
+			M.iterate_conflicts(function(conflict)
+				hl_conflict(buf, conflict, true)
+				return true
+			end, buf, toprow + 1, botrow + 1)
+		end,
+	})
+end
+
 return M
