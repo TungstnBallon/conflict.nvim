@@ -306,13 +306,15 @@ end
 
 ------- JUMPING -------
 
+---Jump to the next conflict
+---If the |wrapscan| option is set, the search will wrap around the end of the
+---buffer.
+---
 ---@param winid? integer Current window by default
 ---@param backwards? boolean False by default
----@param wrap? boolean False by default
-function M.jump_to_next_conflict(winid, backwards, wrap)
+function M.jump_to_next_conflict(winid, backwards)
 	vim.validate("winid", winid, "number", true)
 	vim.validate("backwards", backwards, "boolean", true)
-	vim.validate("wrap", wrap, "boolean", true)
 	local cursor_line = vim.api.nvim_win_get_cursor(winid or 0)[1]
 	local bufnr = vim.api.nvim_win_get_buf(winid or 0)
 
@@ -321,7 +323,7 @@ function M.jump_to_next_conflict(winid, backwards, wrap)
 		jump_line = conflict.delimiter
 		return false
 	end, bufnr, cursor_line, backwards and 1 or -1)
-	if not jump_line and wrap then
+	if not jump_line and vim.o.wrapscan then
 		M.iterate_conflicts(function(conflict)
 			jump_line = conflict.delimiter
 			return false

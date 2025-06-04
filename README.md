@@ -53,10 +53,13 @@ To change the confiuration, simply edit the table `vim.g.conflict_config`
 ---@param to_line? integer 1-based, inclusive, -1 by default, supports negative indexing (-1 is the last line)
 require("conflict").iterate_conflicts(on_conflict, bufnr, from_line, to_line)
 
+---Jump to the next conflict
+---If the |wrapscan| option is set, the search will wrap around the end of the
+---buffer.
+---
 ---@param winid? integer Current window by default
 ---@param backwards? boolean False by default
----@param wrap? boolean False by default
-require("conflict").jump_to_next_conflict(winid, backwards, wrap)
+require("conflict").jump_to_next_conflict(winid, backwards)
 
 ---@param winid? integer Current window by default
 ---@param linenr? integer Cursor position by default
